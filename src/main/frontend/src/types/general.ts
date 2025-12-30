@@ -1,0 +1,1 @@
+export type UseStateType<StateValue> = React.Dispatch<React.SetStateAction<StateValue>>;
