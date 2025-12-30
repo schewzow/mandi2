@@ -3,6 +3,13 @@ import {toast} from "react-toastify";
 import {createAndCheckErrorResponse, type RequestError} from "./api-error.ts";
 import type {RequestResponse} from "./response.ts";
 
+let logoutHandler: (() => void) | null = null;
+
+// Function to "inject" the logout logic from the React side
+export const injectLogoutHandler = (handler: () => void) => {
+    logoutHandler = handler;
+};
+
 const api = axios.create({
     baseURL: `${import.meta.env.VITE_API_BASE_URL}`,
     withCredentials: true,
@@ -15,10 +22,39 @@ api.interceptors.response.use(
         //console.log("Interceptor response: ", response);
         return response;
     },
-    function onRejected(error) {
+    async function onRejected(error) {
         // Any status codes that falls outside the range of 2xx cause this function to trigger
         if (error.response) {
             console.log(error.response);
+            const originalConfig = error.config;
+            // If 401 occurs and we haven't tried to refresh yet
+            if (error.response?.status === 401 && !originalConfig.url?.includes("/auth/refreshtoken")) {
+
+                if (!originalConfig._retry) {
+                    originalConfig._retry = true;
+
+                    try {
+                        // Use the global axios or the api instance to call refresh
+                        await api.post("/auth/refreshtoken", {}, {});
+
+                        // 3. FIX: Use 'api' here to retry the request
+                        return api(originalConfig);
+                    } catch (_error) {
+                        // Handle session expiry
+                        // Refresh token failed or is missing
+                        console.error("Session expired. Logging out.");
+
+                        // Call the injected handler instead of using the store directly
+                        if (logoutHandler) {
+                            logoutHandler();
+                        } else {
+                            window.location.href = "/login";
+                        }
+
+                        return Promise.reject(_error);
+                    }
+                }
+            }
             //const status = error.response.status;
             // Zeige Toast je nach Statuscode
             // if (status === 401) toast.error("Nicht autorisiert!");

@@ -1,10 +1,12 @@
 package de.conti.tires.mandi.backend.user;
 
+import de.conti.tires.mandi.backend.core.exception.GenericException;
 import de.conti.tires.mandi.container.security.jwt.JwtUtils;
 import de.conti.tires.mandi.container.security.request.LoginRequest;
 import de.conti.tires.mandi.container.security.response.MessageResponse;
 import de.conti.tires.mandi.container.security.response.UserInfoResponse;
 import de.conti.tires.mandi.container.security.services.UserDetailsImpl;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -33,6 +36,7 @@ public class AuthController {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder encoder;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
@@ -54,6 +58,13 @@ public class AuthController {
 
         ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
+        // 2. Generate and Save Refresh Token in DB
+        RefreshTokenEntity refreshToken = refreshTokenService.createRefreshToken(userDetails.getUuid());
+
+        // 3. Generate Refresh Token Cookie for the Browser
+        ResponseCookie jwtRefreshCookie = jwtUtils.generateRefreshJwtCookie(refreshToken.getToken());
+
+
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
@@ -61,8 +72,9 @@ public class AuthController {
         UserInfoResponse response = new UserInfoResponse(userDetails.getUuid(),
                 userDetails.getUsername(), roles, jwtCookie.toString(), userDetails.getLanguage());
 
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
-                jwtCookie.toString())
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
                 .body(response);
     }
 
@@ -148,9 +160,40 @@ public class AuthController {
 
     @PostMapping("/signout")
     public ResponseEntity<?> signoutUser(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            // Delete the refresh token from DB for this specific user
+            refreshTokenService.deleteByUserId(userDetails.getUuid());
+        }
+
         ResponseCookie cookie = jwtUtils.getCleanJwtCookie();
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE,
-                        cookie.toString())
+        ResponseCookie jwtRefreshCookie = jwtUtils.getCleanRefreshJwtCookie();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, jwtRefreshCookie.toString())
                 .body(new MessageResponse("You've been signed out!"));
+    }
+
+    @PostMapping("/refreshtoken")
+    public ResponseEntity<?> refreshToken(HttpServletRequest request) {
+        // 1. Get Refresh Token from Cookie
+        String refreshToken = jwtUtils.getRefreshTokenFromCookies(request);
+        System.out.println("Refresh Token: " + refreshToken + "");
+        System.out.println("IsPresent(): " + refreshTokenService.findByToken(refreshToken).isPresent());
+        // 2. Find in DB and check expiration
+        return refreshTokenService.findByToken(refreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshTokenEntity::getUser)
+                .map(user -> {
+                    // 3. Generate a NEW Access Token Cookie
+                    ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(UserDetailsImpl.build(user));
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                            .body(new MessageResponse("Token refreshed successfully!"));
+                })
+                .orElseThrow(() -> new GenericException(HttpStatus.UNAUTHORIZED, "Refresh token is not in database!"));
     }
 }

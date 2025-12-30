@@ -281,7 +281,7 @@ async function makeRequest<Response, Payload>(
             case 401:
                 // This means we are not logged in
                 console.log("Unauthorized request (AS) ", error.status);
-                window.location.href = `${Env.LOGIN_URL}`;
+                //window.location.href = `${Env.LOGIN_URL}`;
         }
         return createAndCheckErrorResponse(error.response?.data);
     }

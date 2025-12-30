@@ -9,7 +9,7 @@ import Box from "@mui/material/Box";
 import MenuIcon from '@mui/icons-material/Menu';
 import Button from "@mui/material/Button";
 import {useAppDispatch, useAppSelector} from "../../store/hooks/hooks.ts";
-import {logoutUser} from "../../store/reducers/authSlice.ts";
+import {logoutUserAndNavigate} from "../../store/reducers/authSlice.ts";
 import type {UserAuth} from "../../store/UserAuth.ts";
 
 
@@ -39,7 +39,7 @@ function Navbar() {
     const handleCloseNavMenu = (to: string) => {
         setAnchorElNav(null);
         if (to === "logout") {
-            dispatch(logoutUser(navigate));
+            dispatch(logoutUserAndNavigate(navigate));
         } else if (to !== null && to !== '') {
             navigate(to);
         }

@@ -77,7 +77,15 @@ export function loginUser(sendData: LoginPayload, navigate: NavigateFunction) {
     }
 }
 
-export function logoutUser(navigate: NavigateFunction) {
+export function logoutUser() {
+    // fetchTodoByIdThunk is the "thunk function"
+    return async function logoutUserThunk(dispatch: AppDispatch) {
+        await api.post("/auth/signout");
+        dispatch(logout());
+    }
+}
+
+export function logoutUserAndNavigate(navigate: NavigateFunction) {
     // fetchTodoByIdThunk is the "thunk function"
     return async function logoutUserThunk(dispatch: AppDispatch) {
         await api.post("/auth/signout");

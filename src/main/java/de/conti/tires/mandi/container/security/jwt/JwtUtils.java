@@ -30,8 +30,17 @@ public class JwtUtils {
     @Value("${spring.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
+    @Value("${spring.app.jwtExpirationSec}")
+    private int jwtExpirationSec;
+
     @Value("${spring.app.jwtCookieName}")
     private String jwtCookie;
+
+    @Value("${spring.app.jwtRefreshCookieName}")
+    private String jwtRefreshCookie;
+
+    @Value("${spring.app.jwtRefreshExpirationMs}")
+    private int jwtRefreshExpirationMs;
 
     @Value("${JWT_PATH}")
     private String jwtPath;
@@ -45,15 +54,33 @@ public class JwtUtils {
         }
     }
 
+    public String getRefreshTokenFromCookies(HttpServletRequest request) {
+        Cookie cookie = WebUtils.getCookie(request, jwtRefreshCookie);
+        if (cookie != null) {
+            return cookie.getValue();
+        } else {
+            return null;
+        }
+    }
+
     public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
         String jwt = generateTokenFromUsername(userPrincipal.getUsername());
         ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwt)
                 .path(jwtPath)
-                .maxAge(24 * 60 * 60)
+                .maxAge(jwtExpirationSec)
                 .httpOnly(false)
-                .secure(false)
+                .secure(false) // Set to true in using HTTPS
                 .build();
         return cookie;
+    }
+
+    public ResponseCookie generateRefreshJwtCookie(String refreshToken) {
+        return ResponseCookie.from(jwtRefreshCookie, refreshToken)
+                .path(jwtPath)
+                .maxAge(jwtRefreshExpirationMs / 1000)
+                .httpOnly(true)
+                .secure(false) // Set to true if using HTTPS
+                .build();
     }
 
     public ResponseCookie getCleanJwtCookie() {
@@ -62,6 +89,13 @@ public class JwtUtils {
                 .maxAge(0)
                 .build();
         return cookie;
+    }
+
+    public ResponseCookie getCleanRefreshJwtCookie() {
+        return ResponseCookie.from(jwtRefreshCookie, null)
+                .path(jwtPath)
+                .maxAge(0)
+                .build();
     }
 
     public String generateTokenFromUsername(String username) {
@@ -91,6 +125,7 @@ public class JwtUtils {
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
+            System.out.println("JWT token expired");
             logger.error("JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
             logger.error("JWT token is unsupported: {}", e.getMessage());
