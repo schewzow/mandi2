@@ -95,7 +95,7 @@ export function EntitySelectField<
             size="small"
             fullWidth={true}
             options={items}
-            value={nextValue}
+            value={nextValue ?? null}
             getOptionKey={(option) => option.uuid}
             getOptionLabel={(option) => option[refField] as string}
             loading={isFetching}

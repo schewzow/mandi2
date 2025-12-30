@@ -11,6 +11,7 @@ import {EntitySwitchField} from "../../components/Form/components/EntitySwitchFi
 import type {UserEntity} from "../../types/user.ts";
 import {EntitySelectField} from "../../components/Form/components/EntitySelectField.tsx";
 import UserEntityApi from "../../api/user/user-entity-api.ts";
+import {toDateTimeStringY} from "../../utils/date.ts";
 
 const COMMON_TEXT_FIELD_PROPS = {size: "small" as const, variant: "outlined" as const};
 
@@ -19,11 +20,20 @@ export const LabsEditPage = () => {
     const params = useParams<{ uuid: string }>();
     const uuid = params.uuid ?? "create";
 
+    const defaultValues: Partial<LaboratoryEntity> = {
+        name: "Das ist der Name",
+        shortName: "Kurzname",
+        resultValue: 123.5,
+        labDate: toDateTimeStringY((new Date()).toString()),
+        labSwitchOn: true,
+    };
+
     const {data, loading, setField, errors, globalErrors, states} = useEntityForm<LaboratoryEntity>({
         uuid,
         entityApi: LaboratoryEntityApi,
         entityPath: EntityApiPath,
         debounceMs: 400,
+        defaultValues,
     });
 
     if (loading) return null;

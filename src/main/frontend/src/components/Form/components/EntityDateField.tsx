@@ -66,7 +66,7 @@ export function EntityDateField<T extends BaseEntity, K extends StringKeys<T>>(p
             <DatePicker
                 {...fieldProps}
                 label={i18nLabel ? <FormattedMessage id={i18nLabel}/> : label}
-                value={dayjs(value)}
+                value={value ? dayjs(value) : null}
                 onChange={(e) =>
                     handleOnChange(e)
                 }

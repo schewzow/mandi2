@@ -20,6 +20,7 @@ type UseEntityFormOptions<T extends BaseEntity> = {
     mapFieldKey?: (backendKey: string) => keyof T | null;
     /** Convert ErrorType to display message. */
     toErrorMessage?: (e: ErrorType) => string;
+    defaultValues?: Partial<T>;
 };
 
 export function useEntityForm<T extends BaseEntity>({
@@ -30,6 +31,7 @@ export function useEntityForm<T extends BaseEntity>({
                                                         getRequestError,
                                                         mapFieldKey,
                                                         toErrorMessage,
+                                                        defaultValues = {},
                                                     }: UseEntityFormOptions<T>) {
     const [data, setData] = useState<T | null>(null);
     const [loading, setLoading] = useState(true);
@@ -78,7 +80,9 @@ export function useEntityForm<T extends BaseEntity>({
         void (async () => {
             try {
                 if (uuid === "create") {
-                    setData({} as T);
+                    setData({
+                        ...defaultValues
+                    } as T);
                 } else {
                     const response = (await entityApi.fetch({uuid: uuid})) as RequestResponse<T>;
                     if (!cancelled && response.status === "success" && response.data) {
@@ -287,7 +291,6 @@ export function useEntityForm<T extends BaseEntity>({
 
             setData((prev) => (prev === null ? prev : {...prev, [key]: value}));
             schedulePatch(oneKeyPatch<T, K>(key, value as T[K]) as Partial<T>); // OK
-            console.log("data: ", dataRef.current);
         }, [schedulePatch]);
 
     return {data, loading, error, setField, isSaving, errors, globalErrors, states};

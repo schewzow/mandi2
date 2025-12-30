@@ -83,7 +83,7 @@ export function EntityNumericField<T extends BaseEntity, K extends StringKeys<T>
             {...fieldProps}
             fullWidth
             label={i18nLabel ? <FormattedMessage id={i18nLabel}/> : label}
-            value={value}
+            value={value ?? null}
             error={Boolean(error)}
             helperText={helperText}
             onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
