@@ -1,10 +1,10 @@
-
 // src/hooks/useEntityForm.ts
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { BaseEntity } from "../types/base-entity.ts";
-import type { EntityAPIType } from "../api/entity-api.ts";
-import type { RequestResponse } from "../api/response.ts";
+import {useCallback, useEffect, useRef, useState} from "react";
+import type {BaseEntity} from "../types/base-entity.ts";
+import type {EntityAPIType} from "../api/entity-api.ts";
+import type {RequestResponse} from "../api/response.ts";
 import type {ErrorType, RequestError} from "../api/api-error.ts";
+import {useNavigate} from "react-router";
 
 export const StateTypes = ["SUCCESS", "ERROR", "UNDEFINED"] as const;
 export type StateType = typeof StateTypes[number];
@@ -12,6 +12,7 @@ export type StateType = typeof StateTypes[number];
 type UseEntityFormOptions<T extends BaseEntity> = {
     uuid: string;                          // stable identifier from URL/router
     entityApi: EntityAPIType<T>;         // make this generic to the actual entity
+    entityPath: string;
     debounceMs?: number;
     /** Extract RequestError from raw patch response (if not provided, default extractor is used). */
     getRequestError?: (response: unknown) => RequestError | null;
@@ -24,6 +25,7 @@ type UseEntityFormOptions<T extends BaseEntity> = {
 export function useEntityForm<T extends BaseEntity>({
                                                         uuid,
                                                         entityApi,
+                                                        entityPath,
                                                         debounceMs = 400,
                                                         getRequestError,
                                                         mapFieldKey,
@@ -33,7 +35,7 @@ export function useEntityForm<T extends BaseEntity>({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-
+    const navigate = useNavigate();
 
 // Field errors to bind to TextFields
     const [errors, setErrors] = useState<Partial<Record<keyof T, string | undefined>>>({});
@@ -50,11 +52,19 @@ export function useEntityForm<T extends BaseEntity>({
     const errorsRef = useRef<Partial<Record<keyof T, string | undefined>>>({});
     //const statesRef = useRef<Partial<Record<keyof T, StateType | undefined>>>({});
 
-    useEffect(() => { latestIdRef.current = uuid; }, [uuid]);
-    useEffect(() => { dataRef.current = data; }, [data]);
-    useEffect(() => { errorsRef.current = errors; }, [errors]);
+    useEffect(() => {
+        latestIdRef.current = uuid;
+    }, [uuid]);
+    useEffect(() => {
+        dataRef.current = data;
+    }, [data]);
+    useEffect(() => {
+        errorsRef.current = errors;
+    }, [errors]);
     //useEffect(() => { statesRef.current = states; }, [states]);
-    useEffect(() => () => { isMountedRef.current = false; }, []);
+    useEffect(() => () => {
+        isMountedRef.current = false;
+    }, []);
 
     const pendingPatchRef = useRef<Partial<T>>({});
     const patchTimerRef = useRef<number | null>(null);
@@ -67,9 +77,13 @@ export function useEntityForm<T extends BaseEntity>({
 
         void (async () => {
             try {
-                const response = (await entityApi.fetch({ uuid: uuid })) as RequestResponse<T>;
-                if (!cancelled && response.status === "success" && response.data) {
-                    setData(response.data);
+                if (uuid === "create") {
+                    setData({} as T);
+                } else {
+                    const response = (await entityApi.fetch({uuid: uuid})) as RequestResponse<T>;
+                    if (!cancelled && response.status === "success" && response.data) {
+                        setData(response.data);
+                    }
                 }
             } catch (e) {
                 const err = e as Error & { name?: string };
@@ -154,14 +168,13 @@ export function useEntityForm<T extends BaseEntity>({
         }
         // If a key was sent and the server did NOT complain about it, clear its error
         for (const k of sentKeys) {
-            if(fieldErrors) {
+            if (fieldErrors) {
                 if (!(k in next)) next[k] = "Another field has an error.";
-            }
-            else {
+            } else {
                 if (!(k in next)) next[k] = undefined;
             }
         }
-        setErrors((prev) => ({ ...prev, ...next }));
+        setErrors((prev) => ({...prev, ...next}));
 
         // Global-level
         const globals = (reqErr.global ?? []).map(toMsg).filter(Boolean);
@@ -171,7 +184,7 @@ export function useEntityForm<T extends BaseEntity>({
     function clearErrorsForKeys(keys: Array<keyof T>) {
         if (!keys.length) return;
         setErrors((prev) => {
-            const next = { ...prev };
+            const next = {...prev};
             for (const k of keys) next[k] = undefined;
             return next;
         });
@@ -180,7 +193,7 @@ export function useEntityForm<T extends BaseEntity>({
     function setStateForKeys(keys: Array<keyof T>, state: StateType) {
         if (!keys.length) return;
         setStates((prev) => {
-            const next = { ...prev };
+            const next = {...prev};
             for (const k of keys) next[k] = state;
             return next;
         });
@@ -204,12 +217,12 @@ export function useEntityForm<T extends BaseEntity>({
         }
 
         // Queue both the filtered changes and the forced error fields
-        pendingPatchRef.current = { ...forcedErrorFields, ...pendingPatchRef.current, ...filtered };
+        pendingPatchRef.current = {...forcedErrorFields, ...pendingPatchRef.current, ...filtered};
 
         if (patchTimerRef.current) window.clearTimeout(patchTimerRef.current);
         patchTimerRef.current = window.setTimeout(() => {
 
-            const toSend = { ...pendingPatchRef.current };
+            const toSend = {...pendingPatchRef.current};
 
             pendingPatchRef.current = {};
             setIsSaving(true);
@@ -217,7 +230,9 @@ export function useEntityForm<T extends BaseEntity>({
             void (async () => {
                 try {
                     const targetId = latestIdRef.current;
-                    const response = await entityApi.patch({ uuid: targetId, data: toSend });
+                    const response: RequestResponse<T> = targetId === "create" ?
+                        await entityApi.create({data: dataRef.current as Partial<T>}) :
+                        await entityApi.patch({uuid: targetId, data: toSend});
 
                     // Handle backend validation errors
                     const reqErr = getErr(response);
@@ -230,11 +245,19 @@ export function useEntityForm<T extends BaseEntity>({
                         return; // do not merge data on validation error
                     }
 
+                    if (targetId === "create") {
+                        console.log("create response: ", response);
+                        //latestIdRef.current = response.data?.uuid ?? "create";
+                        if (response.data?.uuid) {
+                            navigate(`/${entityPath}/${response.data.uuid}`, {replace: true});
+                        }
+                    }
+
                     // Success: merge and clear errors for sent keys
                     const rr = response as RequestResponse<Partial<T> | T | null | undefined>;
                     if (rr?.status === "success" && rr.data && typeof rr.data === "object") {
                         if (isMountedRef.current) {
-                            setData((prev) => (prev ? { ...prev, ...(rr.data as Partial<T>) } : prev));
+                            setData((prev) => (prev ? {...prev, ...(rr.data as Partial<T>)} : prev));
                             const sentKeys = Object.keys(toSend) as Array<keyof T>;
                             clearErrorsForKeys(sentKeys);
                             setStateForKeys(sentKeys, "SUCCESS");
@@ -255,16 +278,17 @@ export function useEntityForm<T extends BaseEntity>({
     // Optimistic update; only schedule patch when entity is loaded
     const setField = useCallback(
         <K extends keyof T>(key: K, value: T[K] & string | number | boolean) => {
-        //<K extends keyof T>(key: K, value: T[K]) => {
+            //<K extends keyof T>(key: K, value: T[K]) => {
 
-        // Clear error for the field as user edits
-        setErrors((prev) => ({ ...prev, [key]: undefined }));
-        // Clear state for the field as user edits
-        setStates((prev) => ({ ...prev, [key]: "UNDEFINED" }));
+            // Clear error for the field as user edits
+            setErrors((prev) => ({...prev, [key]: undefined}));
+            // Clear state for the field as user edits
+            setStates((prev) => ({...prev, [key]: "UNDEFINED"}));
 
-        setData((prev) => (prev === null ? prev : { ...prev, [key]: value }));
-        schedulePatch(oneKeyPatch<T, K>(key, value as T[K]) as Partial<T>); // OK
-    }, [schedulePatch]);
+            setData((prev) => (prev === null ? prev : {...prev, [key]: value}));
+            schedulePatch(oneKeyPatch<T, K>(key, value as T[K]) as Partial<T>); // OK
+            console.log("data: ", dataRef.current);
+        }, [schedulePatch]);
 
-    return { data, loading, error, setField, isSaving, errors, globalErrors, states };
+    return {data, loading, error, setField, isSaving, errors, globalErrors, states};
 }

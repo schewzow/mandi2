@@ -94,6 +94,7 @@ export const LabsList = () => {
     function handleAddItem() {
         //incPositionDialogKey();
         //setShowModal(true);
+        navigate(`/${LaboratoryAPIPath}/create`);
     }
 
     const handleRowClick = (params: GridRowParams, // GridRowParams

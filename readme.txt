@@ -13,4 +13,4 @@ npm install dayjs
 npm install react-cookie
 npm install react-toastify
 npm i -S react react-intl
-??npm i --save lodash
+??npm i --save lodash (not necessary)

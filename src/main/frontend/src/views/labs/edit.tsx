@@ -2,7 +2,7 @@ import {StyledLayoutWrapper} from "../utils/styled-layout-wrapper.tsx";
 import {Alert, Box, Grid} from "@mui/material";
 import {useEntityForm} from "../../hooks/useEntityForm.ts";
 import type {LaboratoryEntity} from "../../types/laboratory.ts";
-import LaboratoryEntityApi from "../../api/labs/laboratory-entity-api.ts";
+import LaboratoryEntityApi, {PATH as EntityApiPath} from "../../api/labs/laboratory-entity-api.ts";
 import {EntityTextField} from "../../components/Form/components/EntityTextField.tsx";
 import {EntityNumericField} from "../../components/Form/components/EntityNumericField.tsx";
 import {useParams} from "react-router-dom";
@@ -12,7 +12,7 @@ import type {UserEntity} from "../../types/user.ts";
 import {EntitySelectField} from "../../components/Form/components/EntitySelectField.tsx";
 import UserEntityApi from "../../api/user/user-entity-api.ts";
 
-const COMMON_TEXT_FIELD_PROPS = { size: "small" as const, variant: "outlined" as const };
+const COMMON_TEXT_FIELD_PROPS = {size: "small" as const, variant: "outlined" as const};
 
 export const LabsEditPage = () => {
 
@@ -22,12 +22,13 @@ export const LabsEditPage = () => {
     const {data, loading, setField, errors, globalErrors, states} = useEntityForm<LaboratoryEntity>({
         uuid,
         entityApi: LaboratoryEntityApi,
+        entityPath: EntityApiPath,
         debounceMs: 400,
     });
 
     if (loading) return null;
 
-    const commonProps = { data, errors, states, setField };
+    const commonProps = {data, errors, states, setField};
 
     return (
         <StyledLayoutWrapper>
@@ -39,7 +40,7 @@ export const LabsEditPage = () => {
                 marginBottom: 2,
             }}>
                 <Box>
-                {/*<Box component="form" onSubmit={(e) => e.preventDefault()} sx={{maxWidth: 520}}>*/}
+                    {/*<Box component="form" onSubmit={(e) => e.preventDefault()} sx={{maxWidth: 520}}>*/}
                     {globalErrors.length > 0 && (
                         <Alert severity="error" sx={{mb: 2}}>
                             {globalErrors.map((g, i) => <div key={i}>{g}</div>)}

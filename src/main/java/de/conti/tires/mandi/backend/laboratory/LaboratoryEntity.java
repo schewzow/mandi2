@@ -23,6 +23,7 @@ public class LaboratoryEntity extends AuditBaseEntity implements Serializable {
     private String name;
 
     @Column(length = 10)
+    @NotNull
     private String shortName;
 
     @Column(length = 10)
