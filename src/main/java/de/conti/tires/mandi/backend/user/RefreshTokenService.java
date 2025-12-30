@@ -2,11 +2,9 @@ package de.conti.tires.mandi.backend.user;
 
 import de.conti.tires.mandi.backend.core.exception.GenericException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -42,6 +40,7 @@ public class RefreshTokenService {
         userRepository.findById(userUuid).ifPresent(refreshTokenRepository::deleteByUser);
     }
 
+    @Transactional
     public RefreshTokenEntity createRefreshToken(UUID userUuid) {
 
         UserEntity user = userRepository.findById(userUuid)
@@ -52,7 +51,7 @@ public class RefreshTokenService {
 
         RefreshTokenEntity refreshToken = new RefreshTokenEntity();
 
-        refreshToken.setUser(userRepository.findById(userUuid).get());
+        refreshToken.setUser(user);
         refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
         refreshToken.setToken(UUID.randomUUID().toString());
 

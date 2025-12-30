@@ -1,5 +1,6 @@
 package de.conti.tires.mandi.backend.user;
 
+import de.conti.tires.mandi.backend.core.exception.BadCredentialsException;
 import de.conti.tires.mandi.backend.core.exception.GenericException;
 import de.conti.tires.mandi.container.security.jwt.JwtUtils;
 import de.conti.tires.mandi.container.security.request.LoginRequest;
@@ -16,14 +17,11 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -33,9 +31,6 @@ public class AuthController {
 
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder encoder;
     private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/signin")
@@ -46,16 +41,18 @@ public class AuthController {
             authentication = authenticationManager
                     .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
         } catch (AuthenticationException exception) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("message", "Bad credentials");
-            map.put("status", false);
-            return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
+            throw new BadCredentialsException();
+//            Map<String, Object> map = new HashMap<>();
+//            map.put("message", "Bad credentials");
+//            map.put("status", false);
+//            return new ResponseEntity<Object>(map, HttpStatus.NOT_FOUND);
         }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
 
+        assert userDetails != null;
         ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
 
         // 2. Generate and Save Refresh Token in DB
@@ -66,7 +63,7 @@ public class AuthController {
 
 
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
         UserInfoResponse response = new UserInfoResponse(userDetails.getUuid(),
@@ -84,9 +81,10 @@ public class AuthController {
 //            return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
 //        }
 //
-////        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-////            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
-////        }
+
+    /// /        if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+    /// /            return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
+    /// /        }
 //
 //        // Create new user's account
 //        UserEntity user = new UserEntity(signUpRequest.getUsername(),
@@ -136,20 +134,19 @@ public class AuthController {
 //        else
 //            return "";
 //    }
-
-
     @GetMapping("/user")
-    public ResponseEntity<?> getUserDetails(Authentication authentication){
+    public ResponseEntity<?> getUserDetails(Authentication authentication) {
 
-        if(authentication == null) {
+        if (authentication == null) {
             return null; //ResponseEntity.badRequest().body(new MessageResponse("Error: User is not logged in!"));
         }
 
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         //System.out.println(authentication.isAuthenticated());
 
+        assert userDetails != null;
         List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
+                .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
 
         UserInfoResponse response = new UserInfoResponse(userDetails.getUuid(),
@@ -159,11 +156,10 @@ public class AuthController {
     }
 
     @PostMapping("/signout")
-    public ResponseEntity<?> signoutUser(){
+    public ResponseEntity<?> signoutUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
-            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl userDetails) {
             // Delete the refresh token from DB for this specific user
             refreshTokenService.deleteByUserId(userDetails.getUuid());
         }
@@ -181,8 +177,6 @@ public class AuthController {
     public ResponseEntity<?> refreshToken(HttpServletRequest request) {
         // 1. Get Refresh Token from Cookie
         String refreshToken = jwtUtils.getRefreshTokenFromCookies(request);
-        System.out.println("Refresh Token: " + refreshToken + "");
-        System.out.println("IsPresent(): " + refreshTokenService.findByToken(refreshToken).isPresent());
         // 2. Find in DB and check expiration
         return refreshTokenService.findByToken(refreshToken)
                 .map(refreshTokenService::verifyExpiration)

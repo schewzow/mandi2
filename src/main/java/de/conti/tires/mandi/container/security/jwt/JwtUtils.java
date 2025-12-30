@@ -65,13 +65,12 @@ public class JwtUtils {
 
     public ResponseCookie generateJwtCookie(UserDetailsImpl userPrincipal) {
         String jwt = generateTokenFromUsername(userPrincipal.getUsername());
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie, jwt)
+        return ResponseCookie.from(jwtCookie, jwt)
                 .path(jwtPath)
                 .maxAge(jwtExpirationSec)
                 .httpOnly(false)
                 .secure(false) // Set to true in using HTTPS
                 .build();
-        return cookie;
     }
 
     public ResponseCookie generateRefreshJwtCookie(String refreshToken) {
@@ -84,11 +83,10 @@ public class JwtUtils {
     }
 
     public ResponseCookie getCleanJwtCookie() {
-        ResponseCookie cookie = ResponseCookie.from(jwtCookie, null)
+        return ResponseCookie.from(jwtCookie, null)
                 .path(jwtPath)
                 .maxAge(0)
                 .build();
-        return cookie;
     }
 
     public ResponseCookie getCleanRefreshJwtCookie() {
@@ -125,7 +123,6 @@ public class JwtUtils {
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());
         } catch (ExpiredJwtException e) {
-            System.out.println("JWT token expired");
             logger.error("JWT token is expired: {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
             logger.error("JWT token is unsupported: {}", e.getMessage());

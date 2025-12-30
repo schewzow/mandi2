@@ -19,8 +19,8 @@ public class RefreshTokenEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     protected UUID uuid;
 
-    @OneToOne
-    @JoinColumn(name = "user_uuid", referencedColumnName = "uuid")
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_uuid", referencedColumnName = "uuid", nullable = false, unique = true)
     private UserEntity user;
 
     @Column(nullable = false, unique = true)

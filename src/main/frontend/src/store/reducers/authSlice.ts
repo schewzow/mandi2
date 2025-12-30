@@ -25,7 +25,7 @@ async function refreshUser() {
         console.log("refreshUser error", error);
     }
     return null;
-};
+}
 
 const user = await refreshUser();
 

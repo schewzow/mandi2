@@ -25,7 +25,7 @@ api.interceptors.response.use(
     async function onRejected(error) {
         // Any status codes that falls outside the range of 2xx cause this function to trigger
         if (error.response) {
-            console.log(error.response);
+            //console.log(error.response);
             const originalConfig = error.config;
             // If 401 occurs and we haven't tried to refresh yet
             if (error.response?.status === 401 && !originalConfig.url?.includes("/auth/refreshtoken")) {
@@ -68,7 +68,8 @@ api.interceptors.response.use(
                 const x: RequestResponse<RequestError> = createAndCheckErrorResponse(error.response?.data);
                 if (x.error !== null) {
                     if (Array.isArray(x.error.global) && x.error.global.length > 0) {
-                        toast.error(x.error.global.map(e => "key: " + e.key + ", message: " + e.message).join("\n"));
+                        toast.error(x.error.global.map(e => e.message).join("\n"));
+                        //toast.error(x.error.global.map(e => "key: " + e.key + ", message: " + e.message).join("\n"));
                     }
                 }
             } else {
