@@ -9,7 +9,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
-@Entity(name = "refreshtoken")
+@Entity(name = "refreshtokens")
 @Getter
 @Setter
 public class RefreshTokenEntity {
