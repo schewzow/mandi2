@@ -15,6 +15,21 @@ import tools.jackson.databind.introspect.BeanPropertyDefinition;
 
 import java.lang.reflect.Method;
 
+/**
+ * A custom serializer for objects implementing the {@link Translatable} interface,
+ * allowing dynamic translation of translatable messages during serialization.
+ * This serializer replaces the default Jackson serialization mechanism for
+ * {@code Translatable} types to include a "message" field that holds the translated
+ * message based on the provided key and parameters.
+ * This implementation avoids potential infinite loops in the serialization process
+ * by manually introspecting and processing class properties.
+ * Not used at the moment, because of moving to a simplier implementation of translation
+ * directly in ApiMessageDto class.
+ * If it has to be used, then add @JsonSerialize(using = TranslatableSerializer.class) annotation
+ * to Translatable.java interface and uncomment customJacksonHttpMessageConverter in JacksonConfig.
+ * And comment translation in ApiMessageDto
+ */
+
 @NoArgsConstructor
 public class TranslatableSerializer extends ValueSerializer<Translatable> {
 
