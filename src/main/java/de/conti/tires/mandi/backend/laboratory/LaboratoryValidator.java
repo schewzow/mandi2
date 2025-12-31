@@ -22,19 +22,17 @@ import java.util.Map;
  */
 @Component
 @RequiredArgsConstructor
-public class LaboratoryValidator implements Validator<LaboratoryEntity>
-{
-   private static final String EMAIL_REGEX = "[^\\s@]+@[^\\s@]+\\.[^\\s@]+";
-   private static final String EMAILS_REGEX = "\\s*" + EMAIL_REGEX + "\\s*(" + "\\s*,\\s*" + EMAIL_REGEX + "\\s*)*";
+public class LaboratoryValidator implements Validator<LaboratoryEntity> {
+    private static final String EMAIL_REGEX = "[^\\s@]+@[^\\s@]+\\.[^\\s@]+";
+    private static final String EMAILS_REGEX = "\\s*" + EMAIL_REGEX + "\\s*(" + "\\s*,\\s*" + EMAIL_REGEX + "\\s*)*";
 
-   private final LaboratoryRepository laboratoryRepository;
-   private final AnnotationBasedValidatorFactory annotationBasedValidatorFactory;
+    //private final LaboratoryRepository laboratoryRepository;
+    private final AnnotationBasedValidatorFactory annotationBasedValidatorFactory;
 
-   @Override
-   public void validate(LaboratoryEntity entity, LaboratoryEntity previousState,
-         Map<String, Object> data, ValidationErrors errors)
-   {
-      annotationBasedValidatorFactory.create(LaboratoryEntity.class).validate(entity, previousState, data, errors);
+    @Override
+    public void validate(LaboratoryEntity entity, LaboratoryEntity previousState,
+                         Map<String, Object> data, ValidationErrors errors) {
+        annotationBasedValidatorFactory.create(LaboratoryEntity.class).validate(entity, previousState, data, errors);
 
 //      Optional.ofNullable(entity.getEmail()).ifPresent(email ->
 //      {
@@ -44,10 +42,12 @@ public class LaboratoryValidator implements Validator<LaboratoryEntity>
 //         }
 //      });
 
-      if (data.containsKey("name"))
-      {
-         laboratoryRepository.findUniqueNameViolation(entity.getName(), entity.getUuid())
-               .ifPresent(lab -> errors.addUniqueError("name"));
-      }
-   }
+
+        // only use it if it is not handled by annotations!
+//      if (data.containsKey("name"))
+//      {
+//         laboratoryRepository.findUniqueNameViolation(entity.getName(), entity.getUuid())
+//               .ifPresent(lab -> errors.addUniqueError("name"));
+//      }
+    }
 }

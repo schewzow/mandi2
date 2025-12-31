@@ -2,6 +2,9 @@ package de.conti.tires.mandi.container.config.spring;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.AbstractJacksonHttpMessageConverter;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.cfg.DateTimeFeature;
@@ -28,17 +31,15 @@ public class JacksonConfig {
                 .build();
     }
 
-
     /**
      * Concrete implementation for Jackson 3 using the non-deprecated base class.
-     * It shall be used only if translation service during Jackson serialization shall be used.
      */
-//    @Bean
-//    @Primary
-//    public AbstractJacksonHttpMessageConverter<?> customJacksonHttpMessageConverter(ObjectMapper objectMapper) {
-//        return new AbstractJacksonHttpMessageConverter<>(objectMapper,
-//                MediaType.APPLICATION_JSON,
-//                new MediaType("application", "*+json")) {
-//        };
-//    }
+    @Bean
+    @Primary
+    public AbstractJacksonHttpMessageConverter<?> customJacksonHttpMessageConverter(ObjectMapper objectMapper) {
+        return new AbstractJacksonHttpMessageConverter<>(objectMapper,
+                MediaType.APPLICATION_JSON,
+                new MediaType("application", "*+json")) {
+        };
+    }
 }

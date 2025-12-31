@@ -63,6 +63,19 @@ public class RestControllerAdvisor
    }
 
    /**
+    * Handles 404.
+    *
+    * @param exception exception to handle
+    * @return error object
+    */
+   @ExceptionHandler({ BadCredentialsException.class })
+   @ResponseStatus(HttpStatus.NOT_FOUND)
+   public ApiMessageDto handleBadCredentialsException(@NonNull Exception exception)
+   {
+      return createApiMessage(exception, "error.BadCredentials");
+   }
+
+   /**
     * Handles validation errors.
     *
     * @param exception exception to handle

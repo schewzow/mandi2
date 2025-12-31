@@ -39,8 +39,11 @@ public class JwtUtils {
     @Value("${spring.app.jwtRefreshCookieName}")
     private String jwtRefreshCookie;
 
-    @Value("${spring.app.jwtRefreshExpirationMs}")
-    private int jwtRefreshExpirationMs;
+//    @Value("${spring.app.jwtRefreshExpirationMs}")
+//    private int jwtRefreshExpirationMs;
+
+    @Value("${spring.app.jwtRefreshExpirationSec}")
+    private int jwtRefreshExpirationSec;
 
     @Value("${JWT_PATH}")
     private String jwtPath;
@@ -76,7 +79,7 @@ public class JwtUtils {
     public ResponseCookie generateRefreshJwtCookie(String refreshToken) {
         return ResponseCookie.from(jwtRefreshCookie, refreshToken)
                 .path(jwtPath)
-                .maxAge(jwtRefreshExpirationMs / 1000)
+                .maxAge(jwtRefreshExpirationSec)
                 .httpOnly(true)
                 .secure(false) // Set to true if using HTTPS
                 .build();
